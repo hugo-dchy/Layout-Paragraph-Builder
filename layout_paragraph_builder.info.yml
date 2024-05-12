@@ -1,0 +1,8 @@
+name: 'Layout Paragraph Builder'
+type: module
+description: 'Theming System for the layout paragraph to create a WTSIWYG like Elementor'
+core: 8.x
+core_version_requirement: ^8 || ^9 | ^10
+package: 'Paragraphs'
+dependencies:
+  - layout_paragraphs:layout_paragraphs

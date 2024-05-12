@@ -1,0 +1,45 @@
+<?php
+
+/**
+ * @file
+ * Toolbar Installation Checks.
+ */
+
+use Drupal\Core\Installer\InstallerKernel;
+
+/**
+ * Implements hook_requirements().
+ */
+function layout_paragraph_builder_requirements($phase) {
+  $requirements = [];
+
+  if ($phase !== 'install') {
+    return $requirements;
+  }
+
+  // We need to check if the admin theme is installed.
+  $installed = \Drupal::service('theme_handler')->themeExists('admin_theme_layout_builder');
+
+  // The admin is installed everything's fine.
+  if ($installed) {
+    return $requirements;
+  }
+
+  global $install_state;
+
+  // Check if Drupal should be installed and gin in is in the install profile.
+  if (InstallerKernel::installationAttempted()
+    && isset($install_state['profile_info']['themes'])
+    && in_array('admin_theme_layout_builder', $install_state['profile_info']['themes'], TRUE)) {
+      return $requirements;
+  }
+
+  // Gin is not installed and it's not supposed to be installed.
+  $requirements['admin_theme_layout_builder'] = [
+    'title' => t('Admin Theme For Layout Builder'),
+    'description' => t('The Layout Paragraph Theme Builder module works with the Admin Theme only'),
+    'severity' => REQUIREMENT_ERROR,
+  ];
+
+  return $requirements;
+}

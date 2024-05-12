@@ -1,0 +1,80 @@
+<?php
+
+use Drupal\Core\Theme\Registry;
+
+function layout_paragraph_builder_theme_registry_alter(&$theme_registry) {
+
+  static $skip_alter = FALSE;
+
+  if ($skip_alter) {
+    // Don't do this alter if we're in the process of loading the default site
+    // theme below.
+    return;
+  }
+
+  $exceptions = [
+    "block--local-tasks-block.html.twig",
+    "breadcrumb.html.twig",
+    "status-messages.html.twig",
+  ];
+
+  $default_theme_name = \Drupal::config('system.theme')->get('default');
+
+  $skip_alter = TRUE;
+  $default_theme_registry = _layout_paragraph_builder_get_theme_registry($default_theme_name);
+  $skip_alter = FALSE;
+
+  // Add "default" paragraph template from the default theme.
+  if (!empty($default_theme_registry['paragraph'])) {
+    $theme_registry['paragraph'] = $default_theme_registry['paragraph'];
+  }
+
+  /**
+   * @var \Drupal\Core\File\FileSystemInterface $file_system
+   */
+  $file_system = \Drupal::service('file_system');
+  $theme_path = \Drupal::service('extension.list.theme')->getPath($default_theme_name);
+  $templates_path = $theme_path . '/templates';
+
+  $files = $file_system->scanDirectory($templates_path, '/html.twig/', ['nomask' => "/layout/"]);
+
+  foreach ($files as $file) {
+    if(!in_array($file->filename, $exceptions)) {
+      $template_file = str_replace(".html.twig", "", $file->filename);
+      $template_name = str_replace("-", "_", $template_file);
+
+      if (!empty($default_theme_registry[$template_name])) {
+        $theme_registry[$template_name] = $default_theme_registry[$template_name];
+      }
+    }
+  }
+
+}
+
+/**
+ * Helper function to get the theme registry for a given theme.
+ *
+ * This is needed because the default "theme.registry" service only returns data
+ * for the *active* theme.
+ *
+ * Note:
+ * The core Theme registry class called here is marked as @internal, but there
+ * is no other way to do this.
+ *
+ * @return array
+ */
+
+function _layout_paragraph_builder_get_theme_registry($theme_name) {
+  $root = Drupal::root();
+  $cache = \Drupal::service('cache.default');
+  $lock = \Drupal::service('lock');
+  $module_handler = \Drupal::service('module_handler');
+  $theme_handler = \Drupal::service('theme_handler');
+  $theme_initialization = \Drupal::service('theme.initialization');
+  $cache_bootstrap = \Drupal::service('cache.bootstrap');
+  $extension_list = \Drupal::service('extension.list.module');
+  $default_theme_registry = new Registry($root, $cache, $lock, $module_handler, $theme_handler, $theme_initialization, $cache_bootstrap, $extension_list, $theme_name);
+  $theme_manager = \Drupal::service('theme.manager');
+  $default_theme_registry->setThemeManager($theme_manager);
+  return $default_theme_registry->get();
+}
